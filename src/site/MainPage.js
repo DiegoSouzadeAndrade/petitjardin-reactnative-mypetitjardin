@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, ScrollView } from 'react-native';
 import TextButtonsNavigation from '../components/TextButtonsNavigation';
 import ImageButtonsNavigation from '../components/ImageButtonNavigation';
 import Carousel from '../components/Carousel';
+import { carouselData } from '../data/CarouselData';
 import { widthPercentageToDP, heightPercentageToDP } from 'react-native-responsive-screen';
 
 const MainPage = ( { navigation } ) => {
@@ -47,20 +48,7 @@ const MainPage = ( { navigation } ) => {
                 />
             </View>
             <View>
-                <Carousel
-                    style='slides'
-                    itemsPerInterval={1}
-                    items={[{
-                        title: 'Foto A',
-                        imageSource: require('../../assets/Boris&Caixa.jpeg'),
-                      }, {
-                        title: 'Foto B',
-                        imageSource: require('../../assets/Boris&Fabi.jpeg'),
-                      }, {
-                        title: 'Foto C',
-                        imageSource: require('../../assets/BorisGuardiao.jpeg'),
-                      }]}
-                />
+                <Carousel data = {carouselData} />
             </View>
             <Text>Main Page</Text>
         </ScrollView>

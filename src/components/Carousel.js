@@ -1,137 +1,97 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView } from 'react-native';
-import { withNavigation } from 'react-navigation';
-import SlideCarousel from './SlideCarousel';
-import StatCarousel from './StatCarousel';
+import React, { useState, useEffect, useRef } from 'react'
+import { View, Text, StyleSheet, Dimensions, FlatList, Animated, TouchableOpacity } from 'react-native'
+import CarouselItem from './CarouselItem'
 
 
-const Carousel = ( props ) => {
+const { width, heigth } = Dimensions.get('window')
+const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
+let flatList
 
-    const { items, style } = props;
-    const itemsPerInterval = props.itemsPerInterval === undefined
-      ? 1
-      : props.itemsPerInterval;
-  
-    const [interval, setInterval] = React.useState(1);
-    const [intervals, setIntervals] = React.useState(1);
-    const [width, setWidth] = React.useState(0);
-  
-    const init = ( width ) => {
-      console.log(width);
-      // initialise width
-      setWidth(width);
-      // initialise total intervals
-      const totalItems = items.length;
-      setIntervals(Math.ceil(totalItems / itemsPerInterval));
-    }
 
-    const getInterval = ( offset ) => {
-        for (let i = 1; i <= intervals; i++) {
-          if (offset < (width / intervals) * i) {
-            return i;
-          }
-          if (i == intervals) {
-            return i;
-          }
+function infiniteScroll(dataList){
+    const numberOfData = dataList.length
+    let scrollValue = 0, scrolled = 0
+
+    // Resetar timer quando usuário mudar a imagem manualmente
+    setInterval(function() {
+        scrolled ++
+        if(scrolled < numberOfData)
+        scrollValue = scrollValue + width
+
+        else{
+            scrollValue = 0
+            scrolled = 0
         }
-    }
-    
-    let bullets = [];
-        for (let i = 1; i <= intervals; i++) {
-            bullets.push(
-                <Text
-                    key={i}
-                    style={{
-                    //TODO: Mudar para mandar uma stylesSheet
-                    ...styles.bullet,
-              opacity: interval === i ? 0.5 : 0.1
-            }}
-          >
-            &bull;
-          </Text>
-        );
-    }
-    
-    return (
-        <View style={styles.container}>
-            <ScrollView
-                horizontal={true}
-                contentContainerStyle={{...styles.scrollView, width: `${100 * intervals}%` }}
-                showsHorizontalScrollIndicator={false}
-                onContentSizeChange={(w, h)=> init(w)}
-                onScroll={data => {
-                    setWidth(data.nativeEvent.contentSize.width);
-                    setIntervals(getInterval(data.nativeEvent.contentOffset.x));
-                }}
-                scrollEventThrottle={200}
-                decelerationRate="fast"
-                pagingEnabled
-            >
-              {items.map((item, index) => {
-                switch (style) {
-                  case 'stats':
-                    return (
-                      <StatCarousel
-                        key={index}
-                        label={item.label}
-                        value={item.value}
-                      />
-                    );
-                  default:
-                    return (
-                      <SlideCarousel
-                        key={index}
-                        title={item.title}
-                        imageSource={item.imageSource}
-                      />
-                  );
-                }
-              })}
-          </ScrollView>
-          <View style={styles.bullets}>
-            {bullets}
-          </View>
-        </View>
-    )};
 
-    const styles = StyleSheet.create ({
-        statsHead: {
-            paddingTop: 10,
-            paddingHorizontal: 12,
-          },
-          container: {
-            width: '100%',
-            backgroundColor: '#fbfbfb',
-            borderColor: '#ebebeb',
-            borderWidth: 1,
-            borderRadius: 8,
-            shadowColor: '#fcfcfc',
-            shadowOpacity: 1,
-            marginTop: 10,
-            shadowOffset: {
-              width: 0,
-              height: 5
-            },
-          },
-          scrollView: {
-            display: 'flex',
-            flexDirection: 'row',
-            overflow: 'hidden',
-          },
-          bullets: {
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            display: 'flex',
-            justifyContent: 'flex-start',
-            flexDirection: 'row',
-            paddingHorizontal: 10,
-            paddingTop: 5,
-          },
-          bullet: {
-            paddingHorizontal: 5,
-            fontSize: 20,
-          }
-    });
+        flatList.scrollToOffset({ animated: true, offset: scrollValue})
+        
+    }, 3000)
+}
 
-    export default withNavigation(Carousel);
+
+const Carousel = ({ data }) => {
+    flatListRef = useRef(null);
+    const scrollX = new Animated.Value(0)
+    let position = Animated.divide(scrollX, width)
+    const [dataList, setDataList] = useState(data)
+    console.log(useRef(null))
+    //flatList = flatListRef
+
+
+    useEffect(()=> {
+        setDataList(data)
+        infiniteScroll(dataList)
+    },[flatListRef])
+
+
+    if (data && data.length) {
+        return (
+            <View>
+                <FlatList data={data}
+                    ref={ref => {console.log(ref); flatListRef = ref}}
+                    keyExtractor={(item, index) => 'key' + index}
+                    horizontal
+                    pagingEnabled
+                    scrollEnabled
+                    snapToAlignment="center"
+                    scrollEventThrottle={16}
+                    decelerationRate={"fast"}
+                    showsHorizontalScrollIndicator={false}
+                    renderItem={({ item }) => {
+                        return <CarouselItem item={item} />
+                    }}
+                    onScroll={Animated.event(
+                        [{ nativeEvent: { contentOffset: { x: scrollX } } }]
+                    )}
+                />
+                
+                <View style={styles.dotView}>
+                    {data.map((_, i) => {
+                        let opacity = position.interpolate({
+                            inputRange: [i - 1, i, i + 1],
+                            outputRange: [0.3, 1, 0.3],
+                            extrapolate: 'clamp'
+                        })
+                        return (
+                            <AnimatedTouchable 
+                              key={i}
+                              onPress={()=> console.log(i + 'Clicked')} 
+                              style={{ opacity, height: 10, width: 10, backgroundColor: '#595959', margin: 8, borderRadius: 5 }}
+                              >
+                            </AnimatedTouchable>
+                        )
+                    })}
+                </View>
+            </View>
+        )
+    }
+
+    console.log('Please provide Images')
+    return null
+}
+
+const styles = StyleSheet.create({
+    dotView: { flexDirection: 'row', justifyContent: 'center' }
+})
+
+export default Carousel
